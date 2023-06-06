@@ -106,7 +106,7 @@ class PolrAreaCard extends s {
         <div class="grid">
           <div class="title">${this._config["title"]}</div>
           <div class="info">
-            <ha-icon icon="mdi:thermostat"></ha-icon>${Math.round(this._hass["states"]["sensor.living_room_ir_repeater_temperature"]["state"])}°F
+            <ha-icon icon="mdi:thermostat"></ha-icon>${Math.round(this._hass["states"][this._config["info"]]["state"])}°F
           </div>
           <div class="buttons">
             ${o$1(this._config["buttons"], (button) => x `

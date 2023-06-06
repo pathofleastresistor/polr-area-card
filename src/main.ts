@@ -20,42 +20,77 @@ class PolrAreaCard extends LitElement {
 
   set hass(hass : any) {
     this._hass = hass;
-    console.log(hass);
   }
 
-  render() {
-    console.log(this._config["background"]);
-    
-    const gridStyle = {
-        backgroundImage: ("url" in this._config["background"]) ? `url(${this._config["background"]["url"]})`:``,
-        backgroundPosition: `right ${this._config["background"]["right"]} bottom ${this._config["background"]["bottom"]}`,
-        backgroundSize: `${this._config["background"]["size"]}`
-    };
+  render() {    
+    const gridStyle = this._config["background"];
 
     return html`
-      <ha-card style=${styleMap(gridStyle)}>
+      <ha-card header=${ this._config["title"] } style=${styleMap(gridStyle)}>
         <div class="grid">
-          <div class="title">${this._config["title"]}</div>
-          <div class="info">
-            <ha-icon icon="mdi:thermostat"></ha-icon>${ Math.round(this._hass["states"][this._config["info"]]["state"]) }°F
-          </div>
-          <div class="buttons">
-            ${map(this._config["buttons"], (button) => html`
-              <div class="button" @click=${{ handleEvent: () => this._callService(button["action"]) }}>
-                <ha-icon icon="${ button["icon"] }"></ha-icon>
-              </div>
-            `)}
-          </div>
+          ${ this._renderInfo() }
+          ${ this._renderButtons() }
         </div>        
       </ha-card>
     `;
   }
 
-  _callService(s : any){
-    let vals: any;
-    vals = s["service"].split(".");
-    console.log(s, vals);
-    this._hass.callService(vals[0], vals[1], s["data"]);
+  _renderInfo() {
+    if(!("info" in this._config)) {
+      return html``;
+    }
+
+    return html`
+      <div class="info">
+        <ha-icon icon="mdi:thermostat"></ha-icon>${ Math.round(this._hass["states"][this._config["info"]]["state"]) }°F
+      </div>
+    `;
+  }
+
+  _renderButtons() {
+    if(!("buttons" in this._config)) {
+      return html``;
+    }
+
+    return html`
+      <div class="buttons">
+        ${map(this._config["buttons"], (button) => html`
+          <div class="button" @click=${{ handleEvent: () => this._handleTapAction(button["tap_action"]) }}>
+            <ha-icon icon="${ button["icon"] }"></ha-icon>
+          </div>
+        `)}
+      </div>
+    `;
+  }
+
+  _handleTapAction(tapAction : any) {
+    if(!("action" in tapAction)) {
+      return;
+    }
+
+    if(tapAction["action"] === "call-service") {
+      this._callService(tapAction);
+    }
+
+    if(tapAction["action"] === "navigate") {
+      window.history.pushState(null, "", tapAction["url_path"]);
+      window.dispatchEvent(new Event('location-changed', {
+        bubbles: true,
+        cancelable: false,
+        composed: true,
+      }));
+    }
+  }
+
+  _callService(actionConfig : any){
+
+    const [domain, service] = actionConfig["service"].split(".", 2);
+    this._hass.callService(
+      domain,
+      service,
+      actionConfig["data"] ?? actionConfig["service_data"],
+      actionConfig["target"]
+    );
   }
 
   static get styles(): CSSResultGroup {
@@ -74,7 +109,11 @@ class PolrAreaCard extends LitElement {
 
       ha-card{
         background-repeat: no-repeat;
-        padding: 20px;
+      }
+      
+      .card-header {
+        padding: 12px 16px 0;
+        line-height: 1em !important;
       }
 
       .grid {
@@ -83,6 +122,7 @@ class PolrAreaCard extends LitElement {
         gap: 10px;
         height: 100%;
         flex-flow: column nowrap;
+        padding: 0 16px 12px;
       }
 
       .title{
@@ -106,11 +146,14 @@ class PolrAreaCard extends LitElement {
       }
 
       .button {
-        background-color: var(--polr-area-primary-color);
-        color: var(--polr-area-bg-color);
-        fill: var(--polr-area-bg-color);
+        background-color: var(
+          --ha-card-border-color,
+          var(--divider-color, #e0e0e0)
+        );
+        color: var(--primary-text-color);
+        fill: var(--primary-text-color);
         border-radius: 50%;
-        padding: 10px;
+        padding: 16px;
         cursor: pointer;
         transition: all 0.2s;
       }
